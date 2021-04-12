@@ -5,7 +5,15 @@ import (
 	"testing"
 )
 
-// insert 系列用于插入测试用例
+// insert 系列用于插入测试用例, 测试 find_test.go 中的函数前需要清除不同的 Doc.
+
+func insert(t *testing.T, data []interface{}) {
+	res, err := coll.InsertMany(nil, data)
+	if err != nil {
+		t.Fatalf("%s\n", err)
+	}
+	fmt.Printf("%#v\n", res)
+}
 
 func TestInsertOneDoc1(t *testing.T) {
 	// 不使用指针类型, 会不会有性能问题?
@@ -25,11 +33,8 @@ func TestInsertManyDoc2(t *testing.T) {
 		Doc2{"planner", 75, Size{22.85, 30, "cm"}, "D"},
 		Doc2{"postcard", 45, Size{10, 15.25, "cm"}, "A"},
 	}
-	res, err := coll.InsertMany(nil, data)
-	if err != nil {
-		t.Fatalf("%s\n", err)
-	}
-	fmt.Printf("%#v\n", res)
+
+	insert(t, data)
 }
 
 func TestInsertManyDoc3(t *testing.T) {
@@ -40,9 +45,30 @@ func TestInsertManyDoc3(t *testing.T) {
 		Doc3{"planner", "D", Size{22.85, 30, "cm"}, []Instock{{"A", 40}}},
 		Doc3{"postcard", "A", Size{10, 15.25, "cm"}, []Instock{{"B", 15}, {"C", 35}}},
 	}
-	res, err := coll.InsertMany(nil, data)
-	if err != nil {
-		t.Fatalf("%s\n", err)
+
+	insert(t, data)
+}
+
+func TestInsertManyDoc4(t *testing.T) {
+	data := []interface{}{
+		Doc4{"journal", []Instock{{"A", 5}, {"C", 15}}},
+		Doc4{"notebook", []Instock{{"C", 5}}},
+		Doc4{"paper", []Instock{{"A", 60}, {"B", 15}}},
+		Doc4{"planner", []Instock{{"A", 40}, {"B", 5}}},
+		Doc4{"postcard", []Instock{{"B", 15}, {"C", 35}}},
 	}
-	fmt.Printf("%#v\n", res)
+
+	insert(t, data)
+}
+
+func TestInsertManyDoc5(t *testing.T) {
+	data := []interface{}{
+		Doc5{"journal", 25, []string{"blank", "red"}, []float32{14, 21}},
+		Doc5{"notebook", 50, []string{"red", "blank"}, []float32{14, 21}},
+		Doc5{"paper", 100, []string{"red", "blank", "plain"}, []float32{14, 21}},
+		Doc5{"planner", 75, []string{"blank", "red"}, []float32{22.85, 30}},
+		Doc5{"postcard", 45, []string{"blue"}, []float32{10, 15.25}},
+	}
+
+	insert(t, data)
 }

@@ -33,7 +33,7 @@ func Init(url string) error {
 	return nil
 }
 
-// 测试用例的文档模型不一样, 所以定义了多种文档类型
+// 为了使数据清晰, 所以定义了多种文档类型
 
 type Size struct {
 	H   float32
@@ -65,4 +65,16 @@ type Doc3 struct {
 	Status  string
 	Size    Size
 	Instock []Instock
+}
+
+type Doc4 struct {
+	Item    string
+	Instock []Instock
+}
+
+type Doc5 struct {
+	Item  string
+	QTY   int
+	Tags  []string
+	DimCm []float32
 }
