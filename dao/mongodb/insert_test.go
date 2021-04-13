@@ -1,13 +1,19 @@
 package mongodb
 
 import (
+	"context"
 	"fmt"
 	"testing"
+
+	"go.mongodb.org/mongo-driver/bson"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // insert 系列用于插入测试用例, 测试 find_test.go 中的函数前需要清除不同的 Doc.
 
-func insert(t *testing.T, data []interface{}) {
+func insert(t *testing.T, coll *mongo.Collection, data []interface{}) {
 	res, err := coll.InsertMany(nil, data)
 	if err != nil {
 		t.Fatalf("%s\n", err)
@@ -18,7 +24,7 @@ func insert(t *testing.T, data []interface{}) {
 func TestInsertOneDoc1(t *testing.T) {
 	// 不使用指针类型, 会不会有性能问题?
 	d := Doc1{"canvas", 100, []string{"cotton"}, Size{28, 35.5, "cm"}}
-	res, err := coll.InsertOne(nil, d)
+	res, err := inventory.InsertOne(nil, d)
 	if err != nil {
 		t.Fatalf("%s\n", err)
 	}
@@ -34,7 +40,24 @@ func TestInsertManyDoc2(t *testing.T) {
 		Doc2{"postcard", 45, Size{10, 15.25, "cm"}, "A"},
 	}
 
-	insert(t, data)
+	insert(t, inventory, data)
+}
+
+// TestInsertManyDoc2Update 用于测试 update 相关 api
+func TestInsertManyDoc2Update(t *testing.T) {
+	data := []interface{}{
+		Doc2{"canvas", 100, Size{28, 35.5, "cm"}, "A"},
+		Doc2{"journal", 25, Size{14, 21, "cm"}, "A"},
+		Doc2{"mat", 85, Size{27.9, 35.5, "cm"}, "A"},
+		Doc2{"mousepad", 25, Size{19, 22.85, "cm"}, "P"},
+		Doc2{"notebook", 50, Size{8.5, 11, "in"}, "P"},
+		Doc2{"paper", 100, Size{8.5, 11, "in"}, "D"},
+		Doc2{"planner", 75, Size{22.85, 30, "cm"}, "D"},
+		Doc2{"postcard", 45, Size{10, 15.25, "cm"}, "A"},
+		Doc2{"sketchbook", 80, Size{14, 21, "cm"}, "A"},
+		Doc2{"sketch pad", 95, Size{22.85, 30.5, "cm"}, "A"},
+	}
+	insert(t, inventory, data)
 }
 
 func TestInsertManyDoc3(t *testing.T) {
@@ -46,7 +69,7 @@ func TestInsertManyDoc3(t *testing.T) {
 		Doc3{"postcard", "A", Size{10, 15.25, "cm"}, []Instock{{"B", 15}, {"C", 35}}},
 	}
 
-	insert(t, data)
+	insert(t, inventory, data)
 }
 
 func TestInsertManyDoc4(t *testing.T) {
@@ -58,7 +81,7 @@ func TestInsertManyDoc4(t *testing.T) {
 		Doc4{"postcard", []Instock{{"B", 15}, {"C", 35}}},
 	}
 
-	insert(t, data)
+	insert(t, inventory, data)
 }
 
 func TestInsertManyDoc5(t *testing.T) {
@@ -70,5 +93,46 @@ func TestInsertManyDoc5(t *testing.T) {
 		Doc5{"postcard", 45, []string{"blue"}, []float32{10, 15.25}},
 	}
 
-	insert(t, data)
+	insert(t, inventory, data)
+}
+
+func TestInsertManyDoc6(t *testing.T) {
+	data := []interface{}{
+		Doc6{ID: primitive.NewObjectID(), Item: nil},
+		Doc7{ID: primitive.NewObjectID()},
+	}
+	insert(t, inventory, data)
+}
+
+func TestInsertDoc8(t *testing.T) {
+	data := []interface{}{
+		Doc8{[12]byte{11: 1}, "Brisbane", "monk", 4},
+		Doc8{[12]byte{11: 2}, "Eldon", "alchemist", 3},
+		Doc8{[12]byte{11: 3}, "Meldane", "ranger", 3},
+	}
+
+	insert(t, characters, data)
+}
+
+func TestInsertManyDoc9(t *testing.T) {
+	data := []interface{}{
+		Doc9{[12]byte{11: 1}, "Java Hut", "Coffee and cakes"},
+		Doc9{[12]byte{11: 2}, "Burger Buns", "Gourmet hamburgers"},
+		Doc9{[12]byte{11: 3}, "Coffee Shop", "Just coffee"},
+		Doc9{[12]byte{11: 4}, "Clothes Clothes Clothes", "Discount clothing"},
+		Doc9{[12]byte{11: 5}, "Java Shopping", "Indonesian goods"},
+	}
+
+	insert(t, stores, data)
+
+	// 用于测试文本查询所建立的索引
+	im := mongo.IndexModel{
+		Keys: bson.D{{"name", "text"}, {"description", "text"}},
+	}
+
+	indexName, err := stores.Indexes().CreateOne(context.TODO(), im)
+	if err != nil {
+		t.Fatalf("%s\n", err)
+	}
+	fmt.Printf("index name: %s\n", indexName)
 }

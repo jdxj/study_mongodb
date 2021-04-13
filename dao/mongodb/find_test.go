@@ -7,10 +7,11 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func find(t *testing.T, filter bson.D, doc interface{}, opts ...*options.FindOptions) {
+func find(t *testing.T, coll *mongo.Collection, filter bson.D, doc interface{}, opts ...*options.FindOptions) {
 	// todo: bson.D 等类型的作用
 
 	// 通过查看源码, bson.D 是 bson.E 的数组形式, 而 bson.E 是个 struct.
@@ -51,12 +52,12 @@ func find(t *testing.T, filter bson.D, doc interface{}, opts ...*options.FindOpt
 
 func TestFindAllDoc2(t *testing.T) {
 	filter := bson.D{}
-	find(t, filter, Doc2{})
+	find(t, inventory, filter, Doc2{})
 }
 
 func TestFindEqualDoc2(t *testing.T) {
 	filter := bson.D{{Key: "status", Value: "D"}}
-	find(t, filter, Doc2{})
+	find(t, inventory, filter, Doc2{})
 }
 
 func TestFindInDoc2(t *testing.T) {
@@ -69,7 +70,7 @@ func TestFindInDoc2(t *testing.T) {
 		}},
 	}}
 
-	find(t, filter, Doc2{})
+	find(t, inventory, filter, Doc2{})
 }
 
 // TestFindAnd 测试 and 查询
@@ -78,7 +79,7 @@ func TestFindAndDoc2(t *testing.T) {
 		{"status", "A"},
 		{"qty", bson.D{{"$lt", 30}}},
 	}
-	find(t, filter, Doc2{})
+	find(t, inventory, filter, Doc2{})
 }
 
 // TestFindOr 测试 or 查询, 这里也进行了 lt 查询, 可以看到查询写起来比较复杂.
@@ -93,10 +94,10 @@ func TestFindOrDoc2(t *testing.T) {
 		},
 	}
 	// 查询结果不重复
-	find(t, filter, Doc2{})
+	find(t, inventory, filter, Doc2{})
 }
 
-func TestFindAndOrDoc2(t *testing.T) {
+func TestFindDoc2AndOr(t *testing.T) {
 	filter := bson.D{
 		{"status", "A"},
 		{
@@ -112,7 +113,16 @@ func TestFindAndOrDoc2(t *testing.T) {
 			},
 		},
 	}
-	find(t, filter, Doc2{})
+	find(t, inventory, filter, Doc2{})
+}
+
+func TestFindDoc2EmbeddedAnd(t *testing.T) {
+	filter := bson.D{
+		{"size.h", bson.D{{"$lt", 15}}},
+		{"size.uom", "in"},
+		{"status", "D"},
+	}
+	find(t, inventory, filter, Doc2{})
 }
 
 // todo
@@ -127,7 +137,7 @@ func TestFindProjectionDoc3(t *testing.T) {
 		{"status", 1},
 	}
 
-	find(t, bson.D{}, Doc3{}, opts)
+	find(t, inventory, bson.D{}, Doc3{}, opts)
 }
 
 func TestProjectionDoc3EmbeddedField(t *testing.T) {
@@ -142,7 +152,7 @@ func TestProjectionDoc3EmbeddedField(t *testing.T) {
 		{"status", "A"},
 	}
 
-	find(t, filter, Doc3{}, opts)
+	find(t, inventory, filter, Doc3{}, opts)
 }
 
 func TestProjectionDoc3ArrayElem(t *testing.T) {
@@ -157,7 +167,7 @@ func TestProjectionDoc3ArrayElem(t *testing.T) {
 		{"instock.qty", 1},
 	}
 
-	find(t, filter, Doc3{}, opts)
+	find(t, inventory, filter, Doc3{}, opts)
 }
 
 // TestProjectionDoc3ArrayElemSlice test $slice cmd
@@ -178,7 +188,7 @@ func TestProjectionDoc3ArrayElemSlice(t *testing.T) {
 		},
 	}
 
-	find(t, filter, Doc3{}, opts)
+	find(t, inventory, filter, Doc3{}, opts)
 }
 
 func TestFindDoc4ArrayElem(t *testing.T) {
@@ -193,7 +203,7 @@ func TestFindDoc4ArrayElem(t *testing.T) {
 		},
 	}
 
-	find(t, filter, Doc4{})
+	find(t, inventory, filter, Doc4{})
 }
 
 func TestFindDoc4ArrayElemField(t *testing.T) {
@@ -205,7 +215,7 @@ func TestFindDoc4ArrayElemField(t *testing.T) {
 		},
 	}
 
-	find(t, filter, Doc4{})
+	find(t, inventory, filter, Doc4{})
 }
 
 func TestFindDoc4ArrayIndexField(t *testing.T) {
@@ -216,7 +226,7 @@ func TestFindDoc4ArrayIndexField(t *testing.T) {
 		},
 	}
 
-	find(t, filter, Doc4{})
+	find(t, inventory, filter, Doc4{})
 }
 
 func TestFindDoc4ArrayElemMatch(t *testing.T) {
@@ -236,7 +246,7 @@ func TestFindDoc4ArrayElemMatch(t *testing.T) {
 		},
 	}
 
-	find(t, filter, Doc4{})
+	find(t, inventory, filter, Doc4{})
 	fmt.Println("---------")
 
 	filter2 := bson.D{
@@ -258,7 +268,7 @@ func TestFindDoc4ArrayElemMatch(t *testing.T) {
 			},
 		},
 	}
-	find(t, filter2, Doc4{})
+	find(t, inventory, filter2, Doc4{})
 	fmt.Println("------")
 
 	// 与 $elemMatch 对比
@@ -272,18 +282,17 @@ func TestFindDoc4ArrayElemMatch(t *testing.T) {
 			},
 		},
 	}
-	find(t, filter3, Doc4{})
+	find(t, inventory, filter3, Doc4{})
 }
 
 func TestFindDoc5Array(t *testing.T) {
-	// 精确匹配
+	fmt.Println("精确匹配:") // 个数, 顺序
 	filter := bson.D{
 		{"tags", []string{"red", "blank"}},
 	}
-	fmt.Println("精确匹配:")
-	find(t, filter, Doc5{})
+	find(t, inventory, filter, Doc5{})
 
-	// 只要包含就可以
+	fmt.Println("只要包含就可以:")
 	filter = bson.D{
 		{
 			"tags",
@@ -292,7 +301,131 @@ func TestFindDoc5Array(t *testing.T) {
 			},
 		},
 	}
-	fmt.Println("只要包含就可以:")
-	find(t, filter, Doc5{})
+	find(t, inventory, filter, Doc5{})
 
+	fmt.Println("指定条件:")
+	filter = bson.D{
+		{"dimcm", bson.D{{"$gt", 25}}},
+	}
+	find(t, inventory, filter, Doc5{})
+}
+
+func TestFindDoc5ArrayComplex(t *testing.T) {
+	fmt.Println("使用多个条件:")
+	filter := bson.D{
+		{
+			"dimcm",
+			bson.D{
+				// 还是类似的取交集形式
+				{"$gt", 15},
+				{"$lt", 20},
+			},
+		},
+	}
+	find(t, inventory, filter, Doc5{})
+
+	fmt.Println("使用 $elemMatch:")
+	filter = bson.D{
+		{
+			"dimcm",
+			bson.D{
+				{
+					"$elemMatch",
+					bson.D{
+						{"$gt", 22},
+						{"$lt", 30},
+					},
+				},
+			},
+		},
+	}
+	find(t, inventory, filter, Doc5{})
+}
+
+func TestFindDoc5ArrayAttr(t *testing.T) {
+	fmt.Println("指定索引:")
+	filter := bson.D{
+		{"dimcm.1", bson.D{{"$gt", 25}}},
+	}
+	find(t, inventory, filter, Doc5{})
+
+	fmt.Println("指定数组长度:")
+	filter = bson.D{
+		{"tags", bson.D{{"$size", 3}}},
+	}
+	find(t, inventory, filter, Doc5{})
+}
+
+func TestFindDoc6I7Null(t *testing.T) {
+	// 注意 _id
+
+	fmt.Println("查找 item:null, 或者不包含 item 的文档:")
+	filter := bson.D{{"item", nil}}
+	find(t, inventory, filter, Doc6{})
+	find(t, inventory, filter, Doc7{})
+
+	fmt.Println("查找 item:null 的文档:")
+	filter = bson.D{
+		{
+			"item",
+			bson.D{{"$type", 10}},
+		},
+	}
+	find(t, inventory, filter, Doc6{})
+	find(t, inventory, filter, Doc7{})
+
+	fmt.Println("查询不包含指定字段的文档:")
+	filter = bson.D{
+		{
+			"item",
+			bson.D{{"$exists", false}},
+		},
+	}
+	find(t, inventory, filter, Doc6{})
+	find(t, inventory, filter, Doc7{})
+}
+
+func TestFindDoc9TextIndex(t *testing.T) {
+	fmt.Println("普通查找:")
+	filter := bson.D{
+		{
+			"$text",
+			bson.D{{"$search", "java coffee shop"}},
+		},
+	}
+	find(t, stores, filter, Doc9{})
+
+	fmt.Println("精确查找:")
+	filter = bson.D{
+		{
+			"$text",
+			bson.D{{"$search", "\"coffee shop\""}},
+		},
+	}
+	find(t, stores, filter, Doc9{})
+
+	fmt.Println("排除写法:")
+	filter = bson.D{
+		{
+			"$text",
+			bson.D{{"$search", "java shop -coffee"}},
+		},
+	}
+	find(t, stores, filter, Doc9{})
+
+	fmt.Println("按照相关性分数排序:")
+	filter = bson.D{
+		{
+			"$text",
+			bson.D{{"$search", "java coffee shop"}},
+		},
+	}
+	opts := &options.FindOptions{}
+	opts.Projection = bson.D{
+		{"score", bson.D{{"$meta", "textScore"}}},
+	}
+	opts.Sort = bson.D{
+		{"score", bson.D{{"$meta", "textScore"}}},
+	}
+	find(t, stores, filter, Doc10{}, opts)
 }

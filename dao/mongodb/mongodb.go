@@ -3,18 +3,24 @@ package mongodb
 import (
 	"context"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const (
-	dbName = "study_mongodb"
-	coName = "test"
+	dbName      = "study_mongodb"
+	cInventory  = "inventory"
+	cCharacters = "characters"
+	cStores     = "stores"
 )
 
 var (
-	client *mongo.Client
-	coll   *mongo.Collection
+	client     *mongo.Client
+	db         *mongo.Database
+	inventory  *mongo.Collection
+	characters *mongo.Collection
+	stores     *mongo.Collection
 )
 
 func Init(url string) error {
@@ -29,7 +35,10 @@ func Init(url string) error {
 		return err
 	}
 	client = c
-	coll = client.Database(dbName).Collection(coName)
+	db = client.Database(dbName)
+	inventory = db.Collection(cInventory)
+	characters = db.Collection(cCharacters)
+	stores = db.Collection(cStores)
 	return nil
 }
 
@@ -77,4 +86,35 @@ type Doc5 struct {
 	QTY   int
 	Tags  []string
 	DimCm []float32
+}
+
+// Doc6 Doc7 用于测试空值
+
+type Doc6 struct {
+	ID   primitive.ObjectID `bson:"_id"`
+	Item *int
+}
+
+type Doc7 struct {
+	ID primitive.ObjectID `bson:"_id"`
+}
+
+type Doc8 struct {
+	ID    primitive.ObjectID `bson:"_id"`
+	Char  string
+	Class string
+	LVL   int
+}
+
+type Doc9 struct {
+	ID          primitive.ObjectID `bson:"_id"`
+	Name        string
+	Description string
+}
+
+type Doc10 struct {
+	ID          primitive.ObjectID `bson:"_id"`
+	Name        string
+	Description string
+	Score       float32
 }
